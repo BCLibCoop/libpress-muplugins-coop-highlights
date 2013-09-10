@@ -31,7 +31,10 @@ class CoopHighlights {
 		if( is_admin() ) {		
 							
 			add_action( 'admin_enqueue_scripts', array( &$this, 'admin_enqueue_styles_scripts' ));
-			add_action( 'admin_menu', array( &$this,'add_highlights_menu' ));			
+		
+		//  custom post type already provides menu item 	
+		//	add_action( 'admin_menu', array( &$this,'add_highlights_menu' ));	
+				
 			add_action( 'add_meta_boxes', array( &$this, 'add_highlight_link_meta_box' )) ;
 			
 			add_action( 'save_post', array( &$this, 'save_post_highlight_linkage' ));
@@ -55,16 +58,9 @@ class CoopHighlights {
 	
 	public function admin_enqueue_styles_scripts($hook) {
 	
-		// error_log($hook);
-	
 		if( 'site-manager_page_highlight' == $hook || 'site-manager_page_highlight-admin' == $hook 
 			|| 'edit.php' == $hook || 'post.php' == $hook || 'post-new.php' == $hook ) {
-		
-		//	wp_enqueue_script( 'jquery-ui-core' );
-		//	wp_enqueue_script( 'jquery-ui-draggable' );
-		//	wp_enqueue_script( 'jquery-ui-droppable' );
-						
-				
+					
 			wp_register_style( 'coop-highlights-admin', plugins_url( '/css/coop-highlights-admin.css', __FILE__ ), false );
 			wp_enqueue_style( 'coop-highlights-admin' );
 			
