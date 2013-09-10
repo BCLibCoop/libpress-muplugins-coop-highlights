@@ -36,10 +36,11 @@ class CoopHighlights {
 		//	add_action( 'admin_menu', array( &$this,'add_highlights_menu' ));	
 				
 			add_action( 'add_meta_boxes', array( &$this, 'add_highlight_link_meta_box' )) ;
+			add_action( 'add_meta_boxes', array( &$this, 'add_highlight_position_meta_box' )) ;
 			
 			add_action( 'save_post', array( &$this, 'save_post_highlight_linkage' ));
+			add_action( 'save_post', array( &$this, 'save_post_highlight_position' ));
 
-		
 		}
 		else {
 			add_action( 'wp_enqueue_scripts', array( &$this, 'frontside_enqueue_styles_scripts' ));
@@ -81,11 +82,11 @@ class CoopHighlights {
 	
 	}
 	
+	
 	public function add_highlight_link_meta_box() {
 		add_meta_box( $this->slug.'_linkage','Link Highlight to Page/Post', array(&$this, 'coop_highlight_inner_box'));
 	}
-	
-	
+		
 	public function coop_highlight_inner_box( $post ) {
 		
 		global $coophighlights_utils;
@@ -100,11 +101,39 @@ class CoopHighlights {
 		echo implode("\n",$out);
 
 	}
+		
+	public function add_highlight_position_meta_box() {
+		add_meta_box( $this->slug.'_placement','Show Highlight in Column #', array(&$this, 'coop_highlight_position_inner_box'));
+	}
+	
+	
+	public function coop_highlight_position_inner_box( $post ) {
+		
+		$out = array();
+		$tag = $this->slug.'_position';
+		$current = get_post_meta($post->ID, '_'.$tag, true);
+		
+		error_log( 'current '.$tag.': '. $current );
+		
+		$out[] = '<p>You must choose which column this Highlight will be displayed in.</p>';
+		
+		for( $i=1;$i<=3;$i++) {
+		
+			$out[] = sprintf('<p><input type="radio" id="highlight_column_%d" value="%d" name="%s"%s>',$i,$i,$tag,(($current==$i)?' checked="checked"':''));
+			$out[] = sprintf('<label for="highlight_column_%d">Column %d</label></p>', $i, $i );
+		}	
+		
+		echo implode("\n",$out);
+
+	}
 	
 	
 	public function save_post_highlight_linkage( $post_id ) {
-		
+
+		error_log( __FUNCTION__ );
+				
 		if( ! wp_is_post_revision($post_id)) {
+		
 			if( array_key_exists($this->slug .'_linked_post', $_POST)) {
 				$link_id = $_POST[$this->slug .'_linked_post'];
 				update_post_meta($post_id, '_'.$this->slug.'_linked_post', $link_id );
@@ -113,7 +142,25 @@ class CoopHighlights {
 	}
 	
 	
+	public function save_post_highlight_position( $post_id ) {
+		
+		error_log( __FUNCTION__ );
+		
+		if( ! wp_is_post_revision($post_id)) {
+		
+			$tag = $this->slug .'_position';
+			
+			if( array_key_exists($tag, $_POST)) {
+				$index = $_POST[$tag];
+				
+				error_log( 'setting '.$tag.': '. $index );
+				
+				update_post_meta($post_id, '_'.$tag, $index );
+			}
+		}
+	}
 	
+
 	public function register_custom_post_type() {
 	
 		$labels = array(
@@ -143,14 +190,12 @@ class CoopHighlights {
 			'capability_type' => 'post',
 			'has_archive' => false, 
 			'hierarchical' => false,
-			'menu_position' => null,
+			'menu_position' => 17,
 			'supports' => array( 'title', 'editor' )
 		); 
 		register_post_type( 'highlight', $args );
-		
 	}
 	
-		
 }
 
 if ( ! isset($coophighlights) ) {
