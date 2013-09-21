@@ -42,11 +42,12 @@ class CoopHighlights {
 			add_action( 'save_post', array( &$this, 'save_post_highlight_position' ));
 
 		}
-		else {
-			add_action( 'wp_enqueue_scripts', array( &$this, 'frontside_enqueue_styles_scripts' ));
-		}	
+		// else {
+		// 	add_action( 'wp_enqueue_scripts', array( &$this, 'frontside_enqueue_styles_scripts' ));
+		// }	
 	}
 	
+/*
 	public function frontside_enqueue_styles_scripts() {
 	
 		wp_register_style( 'coop-highlights', plugins_url( '/css/coop-highlights.css', __FILE__ ), false );
@@ -56,6 +57,7 @@ class CoopHighlights {
 		wp_enqueue_script( 'coop-highlights-js' );
 		
 	}
+*/
 	
 	public function admin_enqueue_styles_scripts($hook) {
 	
