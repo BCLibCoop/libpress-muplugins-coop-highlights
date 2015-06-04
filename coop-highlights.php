@@ -41,6 +41,13 @@ class CoopHighlights {
 			add_action( 'save_post', array( &$this, 'save_post_highlight_linkage' ));
 			add_action( 'save_post', array( &$this, 'save_post_highlight_position' ));
 
+			add_filter ( 'manage_posts_columns', array( &$this, 'highlights_position_manage_post_columns' ), 10, 2);
+      add_action ( 'manage_posts_custom_column', array( &$this, 'highlights_position_populate_column'), 10, 2);
+			
+			add_action ( 'quick_edit_custom_box', array( &$this, 'highlights_position_quick_edit_custom_box' ), 10, 2);
+			add_action ( 'admin_print_scripts-edit.php', array( &$this, 'highlights_position_enqueue_edit_scripts' ));
+			add_action ( 'save_post', array( &$this, 'highlights_position_save_post' ), 10, 2);
+
 		}
 		// else {
 		// 	add_action( 'wp_enqueue_scripts', array( &$this, 'frontside_enqueue_styles_scripts' ));
@@ -66,7 +73,6 @@ class CoopHighlights {
 					
 			wp_register_style( 'coop-highlights-admin', plugins_url( '/css/coop-highlights-admin.css', __FILE__ ), false );
 			wp_enqueue_style( 'coop-highlights-admin' );
-			
 			
 			wp_register_script( 'coop-highlights-admin-js', plugins_url( '/js/coop-highlights-admin.js',__FILE__), array('jquery'));
 			wp_enqueue_script( 'coop-highlights-admin-js' );
@@ -105,7 +111,7 @@ class CoopHighlights {
 	}
 		
 	public function add_highlight_position_meta_box() {
-		add_meta_box( $this->slug.'_placement','Show Highlight in Column #', array(&$this, 'coop_highlight_position_inner_box'));
+		add_meta_box( $this->slug.'_placement','Show Highlight in Column #', array(&$this, 'coop_highlight_position_inner_box'), 'highlight');
 	}
 	
 	
@@ -198,8 +204,89 @@ class CoopHighlights {
 		); 
 		register_post_type( 'highlight', $args );
 	}
-	
+
+	// Add custom column to Highlights listing after Tags column
+
+	public function highlights_position_manage_post_columns( $columns, $post_type ) {
+                switch ( $post_type ) { 
+			case 'highlight':       	
+				$new_columns = array();
+                        	foreach ( $columns as $key => $value ) {
+                               		$new_columns [ $key ] = $value;
+                               		if ( $key == 'tags')
+                                        	$new_columns[ 'highlight_position' ] = 'Position';
+                       		 }	
+                        	return $new_columns;
+		}
+        	return $columns;
+	}
+
+	//Populate with the post metadata
+
+	public function highlights_position_populate_column( $column_name, $post_id ) {
+
+					$tag = $this->slug .'_position';
+        	switch ( $column_name ) {
+                	case 'highlight_position':
+                        	echo '<div id="position-' . $post_id . '">' . get_post_meta( $post_id, '_'.$tag, true) . '</div>';
+                	break;
+        	}
+	}	
+
+	//Add custom column to quick edit
+
+	public function highlights_position_quick_edit_custom_box( $column_name, $post_type ) {
+        	switch ( $post_type ) {
+                	case 'highlight':
+                        	switch ( $column_name ) {
+                                	case 'highlight_position':
+                                        	?><fieldset class="inline-edit-col-right highlight-position">
+                                        	<div class ="inline-edit-col">
+                                                	<label class="inline-edit-status"><span class="title">Position</span>
+                                                	<select name="highlight_select">
+                                                        	<option name="current-position" class="highlight-option" value=""></option>
+                                                	</select></label>
+                                        	</div>
+                                        	</fieldset><?php
+                                	break;
+                       		 }
+                	break;
+        	}
+	}
+
+	//JQuery script include to target and populate the quick edit box
+
+	public function highlights_position_enqueue_edit_scripts() {
+        	wp_enqueue_script( 'highlights-admin-edit',  plugins_url('/js/coop_highlights_quick_edit.js', __FILE__), array( 'jquery', 'inline-edit-post' ), '', true );
 }
+
+	//Save our highlight position values on quick edit
+	
+	public function highlights_position_save_post( $post_id, $post ) {
+
+   		// Don't save for autosave
+   		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
+      			return $post_id;
+
+   		// Don't save for revisions
+   		if ( isset( $post->post_type ) && $post->post_type == 'revision' )
+      			return $post_id;
+
+   		switch( $post->post_type ) {
+
+      			case 'highlight':
+
+         		if ( array_key_exists( 'highlight_select', $_POST ) )
+         					$tag = $this->slug .'_position';
+            			update_post_meta( $post_id, '_'.$tag, $_POST[ 'highlight_select' ] );
+
+         		break;
+
+  		} //end switch	
+
+	} //end class method h_p_save_post
+	
+} //Highlight class definition
 
 if ( ! isset($coophighlights) ) {
 
