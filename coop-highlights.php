@@ -193,7 +193,8 @@ class CoopHighlights {
 			'has_archive' => false, 
 			'hierarchical' => false,
 			'menu_position' => 17,
-			'supports' => array( 'title', 'editor' )
+			'supports' => array( 'title', 'editor' ),
+			'taxonomies' => array( 'category', 'post_tag')
 		); 
 		register_post_type( 'highlight', $args );
 	}
