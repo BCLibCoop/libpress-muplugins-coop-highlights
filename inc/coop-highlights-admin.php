@@ -2,7 +2,7 @@
 
 /**
  * @package Coop Highlights - Admin
- * @copyright BC Libraries Coop 2013
+ * @copyright BC Libraries Coop 2015
  *
  **/
 /**

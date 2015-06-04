@@ -1,7 +1,7 @@
 <?php 
 /**
  * @package Coop Highlights - Utils
- * @copyright BC Libraries Coop 2013
+ * @copyright BC Libraries Coop 2015
  *
  **/
 /**
