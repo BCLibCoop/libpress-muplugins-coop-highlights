@@ -72,16 +72,18 @@ class CoopHighlights
 
     public function adminEnqueue($hook)
     {
-        if (in_array(
-            $hook,
-            [
-                'site-manager_page_highlight',
-                'site-manager_page_highlight-admin',
-                'edit.php',
-                'post.php',
-                'post-new.php'
-            ]
-        )) {
+        if (
+            in_array(
+                $hook,
+                [
+                    'site-manager_page_highlight',
+                    'site-manager_page_highlight-admin',
+                    'edit.php',
+                    'post.php',
+                    'post-new.php'
+                ]
+            )
+        ) {
             wp_enqueue_style('coop-highlights-admin', plugins_url('/css/coop-highlights-admin.css', __FILE__));
         }
     }
@@ -276,7 +278,8 @@ class CoopHighlights
     public function highlightsPositionSavePost($post_id, $post)
     {
         // Don't save for autosave or revisions
-        if ((defined('DOING_AUTOSAVE') && DOING_AUTOSAVE)
+        if (
+            (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE)
             || (isset($post->post_type) && $post->post_type == 'revision')
         ) {
             return;
@@ -289,8 +292,8 @@ class CoopHighlights
                 update_post_meta($post_id, '_' . $tag, $position);
             }
         }
-    } // end class method h_p_save_post
-} // Highlight class definition
+    }
+}
 
 // No Direct Access
 defined('ABSPATH') || die(-1);
