@@ -18,7 +18,7 @@
  * @wordpress-plugin
  * Plugin Name:       Coop Highlights
  * Description:       Custom content type to present in highlight boxes on home page
- * Version:           1.1.0
+ * Version:           1.1.2
  * Network:           true
  * Requires at least: 5.2
  * Requires PHP:      7.0
@@ -140,9 +140,11 @@ class CoopHighlights
     {
         $out = [];
         $tag = $this->slug . '_position';
-        $current = get_post_meta($post->ID, '_' . $tag, true);
+        // Set a default position for more predictable output
+        $current = get_post_meta($post->ID, '_' . $tag, true) ? get_post_meta($post->ID, '_' . $tag, true) : 1;
 
         $out[] = '<p>You must choose which column this Highlight will be displayed in.</p>';
+        $out[] = '<p>If multiple published highlights have the same column selected, the newest one will be shown.</p>';
 
         for ($i = 1; $i <= 3; $i++) {
             $out[] = sprintf(
