@@ -12,13 +12,13 @@
  * @author            Erik Stainsby <eric.stainsby@roaringsky.ca>
  * @author            Jonathan Schatz <jonathan.schatz@bc.libraries.coop>
  * @author            Sam Edwards <sam.edwards@bc.libraries.coop>
- * @copyright         2013-2021 BC Libraries Cooperative
+ * @copyright         2013-2022 BC Libraries Cooperative
  * @license           GPL-2.0-or-later
  *
  * @wordpress-plugin
  * Plugin Name:       Coop Highlights
  * Description:       Custom content type to present in highlight boxes on home page
- * Version:           1.1.2
+ * Version:           1.2.0
  * Network:           true
  * Requires at least: 5.2
  * Requires PHP:      7.0
@@ -53,77 +53,29 @@ class CoopHighlights
         $this->registerCustomPostType();
 
         if (is_admin()) {
-            add_action('admin_enqueue_scripts', [&$this, 'adminEnqueue']);
+            add_action('admin_print_scripts-edit.php', [&$this, 'highlightsPositionEnqueueEditScripts']);
 
-            add_action('add_meta_boxes', [&$this, 'addHighlightLinkMetaBox']);
             add_action('add_meta_boxes', [&$this, 'addHighlightPositionMetaBox']);
 
-            add_action('save_post', [&$this, 'savePostHighlightLinkage']);
             add_action('save_post', [&$this, 'savePostHighlightPosition']);
+            add_action('save_post', [&$this, 'highlightsPositionSavePost'], 10, 2);
 
             add_filter('manage_posts_columns', [&$this, 'highlightsPositionManagePostColumns'], 10, 2);
             add_action('manage_posts_custom_column', [&$this, 'highlightsPositionPopulateColumn'], 10, 2);
 
             add_action('quick_edit_custom_box', [&$this, 'highlightsPositionQuickEditCustomBox'], 10, 2);
-            add_action('admin_print_scripts-edit.php', [&$this, 'highlightsPositionEnqueueEditScripts']);
-            add_action('save_post', [&$this, 'highlightsPositionSavePost'], 10, 2);
         }
     }
 
-    public function adminEnqueue($hook)
+    // JQuery script include to target and populate the quick edit box
+    public function highlightsPositionEnqueueEditScripts()
     {
-        if (
-            in_array(
-                $hook,
-                [
-                    'site-manager_page_highlight',
-                    'site-manager_page_highlight-admin',
-                    'edit.php',
-                    'post.php',
-                    'post-new.php'
-                ]
-            )
-        ) {
-            wp_enqueue_style('coop-highlights-admin', plugins_url('/css/coop-highlights-admin.css', __FILE__));
-        }
-    }
-
-    public function addHighlightLinkMetaBox($hook)
-    {
-        add_meta_box(
-            $this->slug . '_linkage',
-            'Link Highlight to Page/Post',
-            [&$this, 'coopHighlightInnerBox'],
-            'highlight'
+        wp_enqueue_script(
+            'highlights-admin-edit',
+            plugins_url('/js/coop_highlights_quick_edit.js', __FILE__),
+            ['jquery', 'inline-edit-post'],
+            get_plugin_data(__FILE__, false, false)['Version']
         );
-    }
-
-    public function coopHighlightInnerBox($post)
-    {
-        $current = get_post_meta($post->ID, '_' . $this->slug . '_linked_post', true);
-
-        $posts = get_posts([
-            'post_type' => ['post', 'page'],
-            'posts_per_page' => -1,
-            'post_status' => 'publish',
-        ]);
-
-        $out = [];
-        $out[] = '<p>If you wish the highlight to be linked to a post or page, '
-                 . 'select that post/page from the list below.</p>';
-        $out[] = '<select class="' . $this->slug . '_linked_post' . '" name="' . $this->slug . '_linked_post'
-                 . '" style="width:90%">';
-        $out[] = '<option value="0"></option>';
-        $out[] = walk_page_dropdown_tree($posts, 0, [
-            'depth'                 => 0,
-            'child_of'              => 0,
-            'selected'              => $current,
-            'value_field'           => 'ID',
-        ]);
-        $out[] = '</select>';
-        // $out[] = '<p>Items in green are posts. Items in blue are pages.</p>';
-
-        echo implode("\n", $out);
     }
 
     public function addHighlightPositionMetaBox()
@@ -132,7 +84,9 @@ class CoopHighlights
             $this->slug . '_placement',
             'Show Highlight in Column #',
             [&$this, 'coopHighlightPositionInnerBox'],
-            'highlight'
+            'highlight',
+            'normal',
+            'high'
         );
     }
 
@@ -160,23 +114,13 @@ class CoopHighlights
         echo implode("\n", $out);
     }
 
-    public function savePostHighlightLinkage($post_id)
-    {
-        if (!wp_is_post_revision($post_id)) {
-            if (array_key_exists($this->slug . '_linked_post', $_POST)) {
-                $link_id = (int) $_POST[$this->slug . '_linked_post'];
-                update_post_meta($post_id, '_' . $this->slug . '_linked_post', $link_id);
-            }
-        }
-    }
-
     public function savePostHighlightPosition($post_id)
     {
         if (!wp_is_post_revision($post_id)) {
             $tag = $this->slug . '_position';
 
             if (array_key_exists($tag, $_POST)) {
-                $index = (int) $_POST[$tag];
+                $index = (int) sanitize_text_field($_POST[$tag]);
                 update_post_meta($post_id, '_' . $tag, $index);
             }
         }
@@ -212,7 +156,7 @@ class CoopHighlights
             'has_archive' => false,
             'hierarchical' => false,
             'menu_position' => 17,
-            'supports' => ['title', 'editor'],
+            'supports' => ['title', 'editor', 'revisions'],
             'taxonomies' => ['category', 'post_tag'],
         ];
 
@@ -224,9 +168,11 @@ class CoopHighlights
     {
         if ($post_type === 'highlight') {
             $new_columns = [];
+
             foreach ($columns as $key => $value) {
                 $new_columns[$key] = $value;
 
+                // Insert after Tags column
                 if ($key === 'tags') {
                     $new_columns['highlight_position'] = 'Position';
                 }
@@ -241,39 +187,30 @@ class CoopHighlights
     // Populate with the post metadata
     public function highlightsPositionPopulateColumn($column_name, $post_id)
     {
-        $tag = $this->slug . '_position';
-
         if ($column_name === 'highlight_position') {
-            echo '<div id="position-' . $post_id . '">' . get_post_meta($post_id, '_' . $tag, true) . '</div>';
+            echo '<div id="position-' . $post_id . '">'
+                . get_post_meta($post_id, '_' . $this->slug . '_position', true)
+                . '</div>';
         }
     }
 
-    //Add custom column to quick edit
+    // Add custom column to quick edit
     public function highlightsPositionQuickEditCustomBox($column_name, $post_type)
     {
         if ($post_type === 'highlight' && $column_name === 'highlight_position') : ?>
-            <fieldset class="inline-edit-col-right highlight-position">
+            <fieldset class="inline-edit-col-right">
                 <div class="inline-edit-col">
-                    <label class="inline-edit-status"><span class="title">Position</span>
+                    <label class="alignleft">
+                        <span class="title">Position</span>
                         <select name="highlight_select">
-                            <option name="current-position" class="highlight-option" value=""></option>
+                            <option value="1">Column 1</option>
+                            <option value="2">Column 2</option>
+                            <option value="3">Column 3</option>
                         </select>
                     </label>
                 </div>
             </fieldset>
         <?php endif;
-    }
-
-    // JQuery script include to target and populate the quick edit box
-    public function highlightsPositionEnqueueEditScripts()
-    {
-        wp_enqueue_script(
-            'highlights-admin-edit',
-            plugins_url('/js/coop_highlights_quick_edit.js', __FILE__),
-            ['jquery', 'inline-edit-post'],
-            '',
-            true
-        );
     }
 
     // Save our highlight position values on quick edit
@@ -289,9 +226,8 @@ class CoopHighlights
 
         if (isset($post->post_type) && $post->post_type === 'highlight') {
             if (array_key_exists('highlight_select', $_POST)) {
-                $tag = $this->slug . '_position';
-                $position = (int) $_POST['highlight_select'];
-                update_post_meta($post_id, '_' . $tag, $position);
+                $position = (int) sanitize_text_field($_POST['highlight_select']);
+                update_post_meta($post_id, '_' . $this->slug . '_position', $position);
             }
         }
     }
