@@ -18,7 +18,7 @@
  * @wordpress-plugin
  * Plugin Name:       Coop Highlights
  * Description:       Custom content type to present in highlight boxes on home page
- * Version:           1.2.0
+ * Version:           1.3.0
  * Network:           true
  * Requires at least: 5.2
  * Requires PHP:      7.0
@@ -45,26 +45,65 @@ class CoopHighlights
 
         self::$instance = $this;
 
-        add_action('init', [&$this, 'init']);
+        add_action('init', [&$this, 'registerCustomPostType']);
+        add_action('admin_init', [&$this, 'adminInit']);
+        add_shortcode('coop-highlights', [&$this, 'hightlightsShortcode']);
     }
 
-    public function init()
+    public function adminInit()
     {
-        $this->registerCustomPostType();
+        add_action('admin_print_scripts-edit.php', [&$this, 'highlightsPositionEnqueueEditScripts']);
 
-        if (is_admin()) {
-            add_action('admin_print_scripts-edit.php', [&$this, 'highlightsPositionEnqueueEditScripts']);
+        add_action('add_meta_boxes', [&$this, 'addHighlightLinkMetaBox']);
+        add_action('add_meta_boxes', [&$this, 'addHighlightPositionMetaBox']);
 
-            add_action('add_meta_boxes', [&$this, 'addHighlightPositionMetaBox']);
+        add_action('save_post', [&$this, 'savePostHighlightLinkage']);
+        add_action('save_post', [&$this, 'savePostHighlightPosition']);
+        add_action('save_post', [&$this, 'highlightsPositionSavePost'], 10, 2);
 
-            add_action('save_post', [&$this, 'savePostHighlightPosition']);
-            add_action('save_post', [&$this, 'highlightsPositionSavePost'], 10, 2);
+        add_filter('manage_posts_columns', [&$this, 'highlightsPositionManagePostColumns'], 10, 2);
+        add_action('manage_posts_custom_column', [&$this, 'highlightsPositionPopulateColumn'], 10, 2);
 
-            add_filter('manage_posts_columns', [&$this, 'highlightsPositionManagePostColumns'], 10, 2);
-            add_action('manage_posts_custom_column', [&$this, 'highlightsPositionPopulateColumn'], 10, 2);
+        add_action('quick_edit_custom_box', [&$this, 'highlightsPositionQuickEditCustomBox'], 10, 2);
+    }
 
-            add_action('quick_edit_custom_box', [&$this, 'highlightsPositionQuickEditCustomBox'], 10, 2);
+    public function hightlightsShortcode()
+    {
+        $highlights_ordered = [];
+
+        // Get all highlights, ordered ASC, so that newer ones
+        // will get the final position
+        $hightlights_posts = get_posts([
+            'posts_per_page' => -1,
+            'order_by' => 'post_date',
+            'order' => 'ASC',
+            'post_type' => 'highlight',
+            'post_status' => 'publish'
+        ]);
+
+        foreach ($hightlights_posts as $hightlight_post) {
+            $position = (int) get_post_meta($hightlight_post->ID, '_coop_highlights_position', true);
+
+            if ($position > 0) {
+                $highlights_ordered[$position] = $hightlight_post;
+            }
         }
+
+        // If there are published posts, but none with a position set,
+        // fall back to showing it as the only column
+        if (empty($highlights_ordered) && !empty($hightlights_posts)) {
+            $highlights_ordered[1] = $hightlights_posts[0];
+        }
+
+        // Make sure array is sorted by key (aka colulmn number)
+        ksort($highlights_ordered);
+
+        // Get view
+        ob_start();
+
+        require 'inc/views/shortcode.php';
+
+        return ob_get_clean();
     }
 
     // JQuery script include to target and populate the quick edit box
@@ -78,6 +117,18 @@ class CoopHighlights
         );
     }
 
+    public function addHighlightLinkMetaBox($hook)
+    {
+        add_meta_box(
+            $this->slug . '_linkage',
+            'Link Highlight to Page/Post',
+            [&$this, 'coopHighlightLinkInnerBox'],
+            'highlight',
+            'normal',
+            'high'
+        );
+    }
+
     public function addHighlightPositionMetaBox()
     {
         add_meta_box(
@@ -88,6 +139,34 @@ class CoopHighlights
             'normal',
             'high'
         );
+    }
+
+    public function coopHighlightLinkInnerBox($post)
+    {
+        $current = get_post_meta($post->ID, '_' . $this->slug . '_linked_post', true);
+
+        $posts = get_posts([
+            'post_type' => ['post', 'page'],
+            'posts_per_page' => -1,
+            'post_status' => 'publish',
+        ]);
+
+        $out = [];
+        $out[] = '<p>If you wish the highlight to be linked to a post or page, '
+                 . 'select that post/page from the list below.</p>';
+        $out[] = '<select class="' . $this->slug . '_linked_post' . '" name="' . $this->slug . '_linked_post'
+                 . '" style="width:90%">';
+        $out[] = '<option value="0"></option>';
+        $out[] = walk_page_dropdown_tree($posts, 0, [
+            'depth'                 => 0,
+            'child_of'              => 0,
+            'selected'              => $current,
+            'value_field'           => 'ID',
+        ]);
+        $out[] = '</select>';
+        // $out[] = '<p>Items in green are posts. Items in blue are pages.</p>';
+
+        echo implode("\n", $out);
     }
 
     public function coopHighlightPositionInnerBox($post)
@@ -114,14 +193,26 @@ class CoopHighlights
         echo implode("\n", $out);
     }
 
+    public function savePostHighlightLinkage($post_id)
+    {
+        if (!wp_is_post_revision($post_id)) {
+            $tag = $this->slug . '_linked_post';
+
+            if (array_key_exists($tag, $_POST)) {
+                $link_id = (int) sanitize_text_field($_POST[$tag]);
+                update_post_meta($post_id, '_' . $tag, $link_id);
+            }
+        }
+    }
+
     public function savePostHighlightPosition($post_id)
     {
         if (!wp_is_post_revision($post_id)) {
             $tag = $this->slug . '_position';
 
             if (array_key_exists($tag, $_POST)) {
-                $index = (int) sanitize_text_field($_POST[$tag]);
-                update_post_meta($post_id, '_' . $tag, $index);
+                $position = (int) sanitize_text_field($_POST[$tag]);
+                update_post_meta($post_id, '_' . $tag, $position);
             }
         }
     }
