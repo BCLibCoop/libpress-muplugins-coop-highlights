@@ -18,7 +18,7 @@
  * @wordpress-plugin
  * Plugin Name:       Coop Highlights
  * Description:       Custom content type to present in highlight boxes on home page
- * Version:           1.3.0
+ * Version:           1.3.2
  * Network:           true
  * Requires at least: 5.2
  * Requires PHP:      7.0
@@ -29,7 +29,7 @@
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  */
 
-namespace BCLibCoop;
+namespace BCLibCoop\CoopHighlights;
 
 class CoopHighlights
 {
