@@ -18,7 +18,7 @@
  * @wordpress-plugin
  * Plugin Name:       Coop Highlights
  * Description:       Custom content type to present in highlight boxes on home page
- * Version:           1.4.0
+ * Version:           1.4.1
  * Network:           true
  * Requires at least: 5.2
  * Requires PHP:      7.0
@@ -47,7 +47,7 @@ class CoopHighlights
 
         add_action('init', [&$this, 'registerCustomPostType']);
         add_action('admin_init', [&$this, 'adminInit']);
-        add_shortcode('coop-highlights', [&$this, 'hightlightsShortcode']);
+        add_shortcode('coop-highlights', [&$this, 'highlightsShortcode']);
     }
 
     public function adminInit()
@@ -67,13 +67,16 @@ class CoopHighlights
         add_action('quick_edit_custom_box', [&$this, 'highlightsPositionQuickEditCustomBox'], 10, 2);
     }
 
-    public function hightlightsShortcode()
+    /**
+     * Get and order all highlights
+     */
+    public static function highlightsPosts()
     {
         $highlights_ordered = [];
 
         // Get all highlights, ordered ASC, so that newer ones
         // will get the final position
-        $hightlights_posts = get_posts([
+        $highlights_posts = get_posts([
             'posts_per_page' => -1,
             'order_by' => 'post_date',
             'order' => 'ASC',
@@ -81,7 +84,7 @@ class CoopHighlights
             'post_status' => 'publish'
         ]);
 
-        foreach ($hightlights_posts as $hightlight_post) {
+        foreach ($highlights_posts as $hightlight_post) {
             $position = (int) get_post_meta($hightlight_post->ID, '_coop_highlights_position', true);
 
             if ($position > 0) {
@@ -91,13 +94,32 @@ class CoopHighlights
 
         // If there are published posts, but none with a position set,
         // fall back to showing it as the only column
-        if (empty($highlights_ordered) && !empty($hightlights_posts)) {
-            $highlights_ordered[1] = $hightlights_posts[0];
+        if (empty($highlights_ordered) && !empty($highlights_posts)) {
+            $highlights_ordered[1] = $highlights_posts[0];
         }
 
-        // Make sure array is sorted by key (aka colulmn number)
+        // Make sure array is sorted by key (aka column number)
         ksort($highlights_ordered);
 
+        return $highlights_ordered;
+    }
+
+    /**
+     * Returns all of the post_content from all the enabled highlights. Mostly
+     * for use by other plugins checking for shortcodes
+     */
+    public static function allHighlightsContent()
+    {
+        return array_reduce(CoopHighlights::highlightsPosts(), function ($highlights, $highlight) {
+            return "{$highlights}\n{$highlight->post_content}";
+        }, '');
+    }
+
+    /**
+     * Output the highlights template
+     */
+    public function highlightsShortcode()
+    {
         // Get view
         ob_start();
 

@@ -4,10 +4,12 @@
  * Output for the highlight shortcode
  */
 
+namespace BCLibCoop\CoopHighlights;
+
 ?>
-<?php if (!empty($highlights_ordered)) : ?>
+<?php if ($highlights = CoopHighlights::highlightsPosts()) : ?>
     <div class="row highlights">
-        <?php foreach ($highlights_ordered as $column_number => $post) : ?>
+        <?php foreach ($highlights as $column_number => $post) : ?>
             <div class="third lede-<?= $column_number ?>">
                 <?php
                 setup_postdata($GLOBALS['post'] = $post);
