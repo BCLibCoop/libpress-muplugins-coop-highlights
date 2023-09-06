@@ -16,8 +16,8 @@ namespace BCLibCoop\CoopHighlights;
                 $linked_id = get_post_meta($post->ID, '_coop_highlights_linked_post', true);
                 $permalink = $linked_id ? get_permalink($linked_id) : false;
                 ?>
-                <?php echo $permalink ? '<a href="' . $permalink . '">' : '' ?>
-                    <?php the_title('<h3>', '</h3>'); ?>
+                <?= $permalink ? '<a href="' . $permalink . '">' : '' ?>
+                    <?php the_title('<h2>', '</h2>'); ?>
                     <?php
                     /**
                      * Maintaining functionality of wrapping the content in the
@@ -26,7 +26,7 @@ namespace BCLibCoop\CoopHighlights;
                      */
                     ?>
                     <?php the_content(); ?>
-                <?php echo $permalink ? '</a>' : '' ?>
+                <?= $permalink ? '</a>' : '' ?>
             </div>
         <?php endforeach;
         wp_reset_postdata(); ?>
