@@ -118,8 +118,14 @@ class CoopHighlights
     /**
      * Output the highlights template
      */
-    public function highlightsShortcode()
+    public function highlightsShortcode($attr, $content, $tag)
     {
+        $attr = shortcode_atts([
+            'wrapper' => true,
+        ], $attr, $tag);
+        $attr['wrapper'] = filter_var($attr['wrapper'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        extract($attr);
+
         // Get view
         ob_start();
 

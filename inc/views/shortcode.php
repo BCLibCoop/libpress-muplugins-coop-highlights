@@ -8,7 +8,9 @@ namespace BCLibCoop\CoopHighlights;
 
 ?>
 <?php if ($highlights = CoopHighlights::highlightsPosts()) : ?>
-    <div class="row highlights">
+    <?php if ($wrapper) : ?>
+        <div class="row highlights">
+    <?php endif; ?>
         <?php foreach ($highlights as $column_number => $post) : ?>
             <div class="third lede-<?= $column_number ?>">
                 <?php
@@ -30,5 +32,7 @@ namespace BCLibCoop\CoopHighlights;
             </div>
         <?php endforeach;
         wp_reset_postdata(); ?>
-    </div><!-- highlights -->
+    <?php if ($wrapper) : ?>
+        </div><!-- highlights -->
+    <?php endif; ?>
 <?php endif; ?>
