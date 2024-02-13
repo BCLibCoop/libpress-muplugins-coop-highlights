@@ -265,12 +265,8 @@ class CoopHighlights
 
         $args = [
             'labels' => $labels,
-            'public' => true,
-            'publicly_queryable' => true,
+            'public' => false,
             'show_ui' => true,
-            'show_in_menu' => true,
-            'query_var' => true,
-            'rewrite' => ['slug' => 'highlight'],
             'capability_type' => 'post',
             'has_archive' => false,
             'hierarchical' => false,
