@@ -70,9 +70,13 @@ class CoopHighlights
     /**
      * Get and order all highlights
      */
-    public static function highlightsPosts()
+    public static function highlightsPosts($include_blank = false)
     {
         $highlights_ordered = [];
+
+        if ($include_blank) {
+            $highlights_ordered = array_fill_keys(range(1,3), null);
+        }
 
         // Get all highlights, ordered ASC, so that newer ones
         // will get the final position
@@ -110,7 +114,7 @@ class CoopHighlights
      */
     public static function allHighlightsContent()
     {
-        return array_reduce(CoopHighlights::highlightsPosts(), function ($highlights, $highlight) {
+        return array_reduce(self::highlightsPosts(), function ($highlights, $highlight) {
             return "{$highlights}\n{$highlight->post_content}";
         }, '');
     }
