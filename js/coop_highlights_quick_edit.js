@@ -17,7 +17,7 @@
       var $editRow = $('#edit-' + $post_id);
       var highlightPosition = $('#position-' + $post_id).text();
 
-      $posSelect = $editRow.find(':input[name="highlight_select"]');
+      $posSelect = $editRow.find(':input[name="coop_highlight_position"]');
       $posSelect.val(highlightPosition);
     }
   };

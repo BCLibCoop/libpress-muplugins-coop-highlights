@@ -35,7 +35,7 @@ class CoopHighlights
 {
     private static $instance;
 
-    public $slug = 'coop_highlights';
+    public static $slug = 'coop_highlights';
 
     public function __construct()
     {
@@ -45,26 +45,24 @@ class CoopHighlights
 
         self::$instance = $this;
 
-        add_action('init', [&$this, 'registerCustomPostType']);
-        add_action('admin_init', [&$this, 'adminInit']);
-        add_shortcode('coop-highlights', [&$this, 'highlightsShortcode']);
+        add_action('init', [$this, 'registerCustomPostType']);
+        add_action('admin_init', [$this, 'adminInit']);
+        add_shortcode('coop-highlights', [$this, 'highlightsShortcode']);
     }
 
     public function adminInit()
     {
-        add_action('admin_print_scripts-edit.php', [&$this, 'highlightsPositionEnqueueEditScripts']);
+        add_action('admin_print_scripts-edit.php', [$this, 'highlightsPositionEnqueueEditScripts']);
 
-        add_action('add_meta_boxes', [&$this, 'addHighlightLinkMetaBox']);
-        add_action('add_meta_boxes', [&$this, 'addHighlightPositionMetaBox']);
+        add_action('add_meta_boxes', [$this, 'addHighlightLinkMetaBox']);
+        add_action('add_meta_boxes', [$this, 'addHighlightPositionMetaBox']);
 
-        add_action('save_post', [&$this, 'savePostHighlightLinkage']);
-        add_action('save_post', [&$this, 'savePostHighlightPosition']);
-        add_action('save_post', [&$this, 'highlightsPositionSavePost'], 10, 2);
+        add_action('save_post', [$this, 'savePostHighlightMeta'], 10, 2);
 
-        add_filter('manage_posts_columns', [&$this, 'highlightsPositionManagePostColumns'], 10, 2);
-        add_action('manage_posts_custom_column', [&$this, 'highlightsPositionPopulateColumn'], 10, 2);
+        add_filter('manage_posts_columns', [$this, 'highlightsPositionManagePostColumns'], 10, 2);
+        add_action('manage_posts_custom_column', [$this, 'highlightsPositionPopulateColumn'], 10, 2);
 
-        add_action('quick_edit_custom_box', [&$this, 'highlightsPositionQuickEditCustomBox'], 10, 2);
+        add_action('quick_edit_custom_box', [$this, 'highlightsPositionQuickEditCustomBox'], 10, 2);
     }
 
     /**
@@ -75,7 +73,7 @@ class CoopHighlights
         $highlights_ordered = [];
 
         if ($include_blank) {
-            $highlights_ordered = array_fill_keys(range(1,3), null);
+            $highlights_ordered = array_fill_keys(range(1, 3), null);
         }
 
         // Get all highlights, ordered ASC, so that newer ones
@@ -89,7 +87,7 @@ class CoopHighlights
         ]);
 
         foreach ($highlights_posts as $hightlight_post) {
-            $position = (int) get_post_meta($hightlight_post->ID, '_coop_highlights_position', true);
+            $position = (int) get_post_meta($hightlight_post->ID, '_' . static::$slug . '_position', true);
 
             if ($position > 0) {
                 $highlights_ordered[$position] = $hightlight_post;
@@ -154,7 +152,7 @@ class CoopHighlights
         add_meta_box(
             $this->slug . '_linkage',
             'Link Highlight to Page/Post',
-            [&$this, 'coopHighlightLinkInnerBox'],
+            [$this, 'coopHighlightLinkInnerBox'],
             'highlight',
             'normal',
             'high'
@@ -166,7 +164,7 @@ class CoopHighlights
         add_meta_box(
             $this->slug . '_placement',
             'Show Highlight in Column #',
-            [&$this, 'coopHighlightPositionInnerBox'],
+            [$this, 'coopHighlightPositionInnerBox'],
             'highlight',
             'normal',
             'high'
@@ -185,9 +183,9 @@ class CoopHighlights
 
         $out = [];
         $out[] = '<p>If you wish the highlight to be linked to a post or page, '
-                 . 'select that post/page from the list below.</p>';
+            . 'select that post/page from the list below.</p>';
         $out[] = '<select class="' . $this->slug . '_linked_post' . '" name="' . $this->slug . '_linked_post'
-                 . '" style="width:90%">';
+            . '" style="width:90%">';
         $out[] = '<option value="0"></option>';
         $out[] = walk_page_dropdown_tree($posts, 0, [
             'depth'                 => 0,
@@ -225,27 +223,29 @@ class CoopHighlights
         echo implode("\n", $out);
     }
 
-    public function savePostHighlightLinkage($post_id)
+    public function savePostHighlightMeta($post_id, $post)
     {
-        if (!wp_is_post_revision($post_id)) {
-            $tag = $this->slug . '_linked_post';
-
-            if (array_key_exists($tag, $_POST)) {
-                $link_id = (int) sanitize_text_field($_POST[$tag]);
-                update_post_meta($post_id, '_' . $tag, $link_id);
-            }
+        // Don't save for autosave or revisions or non-highlights
+        if (
+            get_post_type($post) !== 'highlight'
+            || (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE)
+            || wp_is_post_revision($post)
+        ) {
+            return;
         }
-    }
 
-    public function savePostHighlightPosition($post_id)
-    {
-        if (!wp_is_post_revision($post_id)) {
-            $tag = $this->slug . '_position';
+        $tag = $this->slug . '_linked_post';
 
-            if (array_key_exists($tag, $_POST)) {
-                $position = (int) sanitize_text_field($_POST[$tag]);
-                update_post_meta($post_id, '_' . $tag, $position);
-            }
+        if (array_key_exists($tag, $_POST)) {
+            $link_id = (int) sanitize_text_field($_POST[$tag]);
+            update_post_meta($post_id, '_' . $tag, $link_id);
+        }
+
+        $tag = $this->slug . '_position';
+
+        if (array_key_exists($tag, $_POST)) {
+            $position = (int) sanitize_text_field($_POST[$tag]);
+            update_post_meta($post_id, '_' . $tag, $position);
         }
     }
 
@@ -321,7 +321,7 @@ class CoopHighlights
                 <div class="inline-edit-col">
                     <label class="alignleft">
                         <span class="title">Position</span>
-                        <select name="highlight_select">
+                        <select name="<?= $this->slug . '_position' ?>">
                             <option value="1">Column 1</option>
                             <option value="2">Column 2</option>
                             <option value="3">Column 3</option>
@@ -329,26 +329,7 @@ class CoopHighlights
                     </label>
                 </div>
             </fieldset>
-        <?php endif;
-    }
-
-    // Save our highlight position values on quick edit
-    public function highlightsPositionSavePost($post_id, $post)
-    {
-        // Don't save for autosave or revisions
-        if (
-            (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE)
-            || (isset($post->post_type) && $post->post_type == 'revision')
-        ) {
-            return;
-        }
-
-        if (isset($post->post_type) && $post->post_type === 'highlight') {
-            if (array_key_exists('highlight_select', $_POST)) {
-                $position = (int) sanitize_text_field($_POST['highlight_select']);
-                update_post_meta($post_id, '_' . $this->slug . '_position', $position);
-            }
-        }
+<?php endif;
     }
 }
 
