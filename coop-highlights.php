@@ -150,7 +150,7 @@ class CoopHighlights
     public function addHighlightLinkMetaBox($hook)
     {
         add_meta_box(
-            $this->slug . '_linkage',
+            static::$slug . '_linkage',
             'Link Highlight to Page/Post',
             [$this, 'coopHighlightLinkInnerBox'],
             'highlight',
@@ -162,7 +162,7 @@ class CoopHighlights
     public function addHighlightPositionMetaBox()
     {
         add_meta_box(
-            $this->slug . '_placement',
+            static::$slug . '_placement',
             'Show Highlight in Column #',
             [$this, 'coopHighlightPositionInnerBox'],
             'highlight',
@@ -173,7 +173,7 @@ class CoopHighlights
 
     public function coopHighlightLinkInnerBox($post)
     {
-        $current = get_post_meta($post->ID, '_' . $this->slug . '_linked_post', true);
+        $current = get_post_meta($post->ID, '_' . static::$slug . '_linked_post', true);
 
         $posts = get_posts([
             'post_type' => ['post', 'page'],
@@ -184,7 +184,7 @@ class CoopHighlights
         $out = [];
         $out[] = '<p>If you wish the highlight to be linked to a post or page, '
             . 'select that post/page from the list below.</p>';
-        $out[] = '<select class="' . $this->slug . '_linked_post' . '" name="' . $this->slug . '_linked_post'
+        $out[] = '<select class="' . static::$slug . '_linked_post' . '" name="' . static::$slug . '_linked_post'
             . '" style="width:90%">';
         $out[] = '<option value="0"></option>';
         $out[] = walk_page_dropdown_tree($posts, 0, [
@@ -202,7 +202,7 @@ class CoopHighlights
     public function coopHighlightPositionInnerBox($post)
     {
         $out = [];
-        $tag = $this->slug . '_position';
+        $tag = static::$slug . '_position';
         // Set a default position for more predictable output
         $current = get_post_meta($post->ID, '_' . $tag, true) ? get_post_meta($post->ID, '_' . $tag, true) : 1;
 
@@ -234,14 +234,14 @@ class CoopHighlights
             return;
         }
 
-        $tag = $this->slug . '_linked_post';
+        $tag = static::$slug . '_linked_post';
 
         if (array_key_exists($tag, $_POST)) {
             $link_id = (int) sanitize_text_field($_POST[$tag]);
             update_post_meta($post_id, '_' . $tag, $link_id);
         }
 
-        $tag = $this->slug . '_position';
+        $tag = static::$slug . '_position';
 
         if (array_key_exists($tag, $_POST)) {
             $position = (int) sanitize_text_field($_POST[$tag]);
@@ -308,7 +308,7 @@ class CoopHighlights
     {
         if ($column_name === 'highlight_position') {
             echo '<div id="position-' . $post_id . '">'
-                . get_post_meta($post_id, '_' . $this->slug . '_position', true)
+                . get_post_meta($post_id, '_' . static::$slug . '_position', true)
                 . '</div>';
         }
     }
@@ -321,7 +321,7 @@ class CoopHighlights
                 <div class="inline-edit-col">
                     <label class="alignleft">
                         <span class="title">Position</span>
-                        <select name="<?= $this->slug . '_position' ?>">
+                        <select name="<?= static::$slug . '_position' ?>">
                             <option value="1">Column 1</option>
                             <option value="2">Column 2</option>
                             <option value="3">Column 3</option>
