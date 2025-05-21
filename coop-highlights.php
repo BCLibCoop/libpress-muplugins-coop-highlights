@@ -37,6 +37,8 @@ class CoopHighlights
 
     public static $slug = 'coop_highlights';
 
+    private $post_type_object;
+
     public function __construct()
     {
         if (isset(self::$instance)) {
@@ -48,6 +50,8 @@ class CoopHighlights
         add_action('init', [$this, 'registerCustomPostType']);
         add_action('admin_init', [$this, 'adminInit']);
         add_shortcode('coop-highlights', [$this, 'highlightsShortcode']);
+
+        add_filter('pll_get_post_types', [$this, 'addPolylangPostType']);
     }
 
     public function adminInit()
@@ -63,6 +67,20 @@ class CoopHighlights
         add_action('manage_posts_custom_column', [$this, 'highlightsPositionPopulateColumn'], 10, 2);
 
         add_action('quick_edit_custom_box', [$this, 'highlightsPositionQuickEditCustomBox'], 10, 2);
+    }
+
+    /**
+     * Polylang only shows "public" post types by default, so manually add us to
+     * their list
+     *
+     * @param string[] $post_types  List of post type names (as array keys and values).
+     * @param bool     $is_settings True when displaying the list of custom post types in Polylang settings.
+     */
+    public function addPolylangPostType($post_types = [], $is_settings = false)
+    {
+        $post_types[] = 'highlight';
+
+        return $post_types;
     }
 
     /**
@@ -279,7 +297,7 @@ class CoopHighlights
             'taxonomies' => ['category', 'post_tag'],
         ];
 
-        register_post_type('highlight', $args);
+        $this->post_type_object = register_post_type('highlight', $args);
     }
 
     // Add custom column to Highlights listing after Tags column
