@@ -161,7 +161,8 @@ class CoopHighlights
             'highlights-admin-edit',
             plugins_url('/js/coop_highlights_quick_edit.js', __FILE__),
             ['jquery', 'inline-edit-post'],
-            get_plugin_data(__FILE__, false, false)['Version']
+            get_plugin_data(__FILE__, false, false)['Version'],
+            true // Required to ensure wp-admin common.js is in footer
         );
     }
 
