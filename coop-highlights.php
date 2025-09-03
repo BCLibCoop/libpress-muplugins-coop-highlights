@@ -18,7 +18,7 @@
  * @wordpress-plugin
  * Plugin Name:       Coop Highlights
  * Description:       Custom content type to present in highlight boxes on home page
- * Version:           1.6.3
+ * Version:           1.6.4
  * Network:           true
  * Requires at least: 5.2
  * Requires PHP:      7.0
